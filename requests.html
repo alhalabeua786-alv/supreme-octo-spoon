@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الطلبات والبلاغات - سُقيا</title>
+<link rel="stylesheet" href="style.css">
+
+<style>
+body {
+    margin: 0;
+    background: #f0f7f7;
+    color: #263238;
+    font-family: Arial, sans-serif;
+}
+
+.request-container {
+    max-width: 600px;
+    margin: 25px auto;
+    padding: 20px;
+}
+
+.request-card {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px #00000012;
+}
+
+h1 {
+    text-align: center;
+    color: #087f83;
+}
+
+label {
+    display: block;
+    margin: 15px 0 7px;
+    font-weight: bold;
+    color: #263238;
+}
+
+input, select, textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccd8d8;
+    border-radius: 8px;
+    background: white;
+    color: #222;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 20px;
+    border: none;
+    border-radius: 8px;
+    background: #087f83;
+    color: white;
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.back-link {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #087f83;
+}
+
+#message {
+    margin-top: 15px;
+    text-align: center;
+    font-weight: bold;
+    line-height: 1.8;
+}
+</style>
+</head>
+
+<body>
+<main class="request-container">
+<div class="request-card">
+
+<h1 id="pageTitle">طلب خدمة</h1>
+<p id="pageDescription">
+أدخلي بياناتك لتقديم طلب توصيل المياه.
+</p>
+
+<form id="requestForm">
+
+<label for="customerName">الاسم الكامل</label>
+<input id="customerName" type="text"
+       placeholder="اكتبي اسمك الكامل" required>
+
+<label for="phone">رقم الهاتف</label>
+<input id="phone" type="tel"
+       placeholder="أدخلي رقم الهاتف" required>
+
+<label for="address">عنوان السكن</label>
+<input id="address" type="text"
+       placeholder="الحي والشارع وأقرب معلم" required>
+
+<div id="serviceFields">
+    <label for="quantity">الكمية المطلوبة (اختياري)</label>
+    <input id="quantity" type="number" min="1"
+           placeholder="أدخلي الكمية">
+</div>
+
+<div id="reportFields" hidden>
+    <label for="reportLocation">مكان العطل أو التسرب</label>
+    <input id="reportLocation" type="text"
+           placeholder="حددي مكان المشكلة">
+
+    <label for="reportDescription">وصف البلاغ</label>
+    <textarea id="reportDescription" rows="4"
+              placeholder="اشرحي المشكلة بالتفصيل"></textarea>
+</div>
+
+<label for="details">تفاصيل إضافية (اختياري)</label>
+<textarea id="details" rows="3"
+          placeholder="أي معلومات إضافية"></textarea>
+
+<button type="submit" id="submitButton">إرسال طلب الخدمة</button>
+
+<div id="message" role="status"></div>
+</form>
+
+<a class="back-link" href="services.html">
+العودة إلى الخدمات
+</a>
+
+</div>
+</main>
+
+<script>
+(function () {
+    const form = document.getElementById("requestForm");
+    const message = document.getElementById("message");
+    const title = document.getElementById("pageTitle");
+    const description = document.getElementById("pageDescription");
+    const submitButton = document.getElementById("submitButton");
+
+    const serviceFields = document.getElementById("serviceFields");
+    const reportFields = document.getElementById("reportFields");
+    const reportLocation = document.getElementById("reportLocation");
+    const reportDescription = document.getElementById("reportDescription");
+
+    const params = new URLSearchParams(window.location.search);
+    const pageType = params.get("type");
+
+    const isReport = pageType === "report";
+
+    if (isReport) {
+        title.textContent = "تقديم بلاغ";
+        description.textContent =
+            "أدخلي بياناتك وحددي مكان العطل أو التسرب.";
+        submitButton.textContent = "إرسال البلاغ";
+        reportFields.hidden = false;
+        serviceFields.hidden = true;
+        reportLocation.required = true;
+        reportDescription.required = true;
+    } else {
+        title.textContent = "طلب خدمة";
+        description.textContent =
+            "أدخلي بياناتك لتقديم طلب توصيل المياه.";
+        submitButton.textContent = "إرسال طلب الخدمة";
+        reportFields.hidden = true;
+        serviceFields.hidden = false;
+    }
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const request = {
+            id: Date.now(),
+            type: isReport ? "بلاغ" : "طلب توصيل مياه",
+            name: document.getElementById("customerName").value.trim(),
+            phone: document.getElementById("phone").value.trim(),
+            address: document.getElementById("address").value.trim(),
+            quantity: isReport ? "" :
+                document.getElementById("quantity").value,
+            reportLocation: isReport ? reportLocation.value.trim() : "",
+            reportDescription: isReport ?
+                reportDescription.value.trim() : "",
+            details: document.getElementById("details").value.trim(),
+            date: new Date().toLocaleString("ar")
+        };
+
+        try {
+            const saved = JSON.parse(
+                localStorage.getItem("sukiaRequests") || "[]"
+            );
+
+            if (!Array.isArray(saved)) {
+                throw new Error("Invalid saved data");
+            }
+
+            saved.push(request);
+            localStorage.setItem(
+                "sukiaRequests",
+                JSON.stringify(saved)
+            );
+
+            message.style.color = "#087f46";
+            message.textContent = isReport
+                ? "تم حفظ البلاغ بنجاح على هذا الجهاز."
+                : "تم حفظ طلب الخدمة بنجاح على هذا الجهاز.";
+
+            form.reset();
+        } catch (error) {
+            message.style.color = "#b00020";
+            message.textContent =
+                "تعذر الحفظ. جربي فتح الصفحة من معاينة Acode المحلية.";
+        }
+    });
+})();
+</script>
+</body>
+</html>
